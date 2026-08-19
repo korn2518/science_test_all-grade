@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>과학 형성평가</title>
+<link rel="stylesheet" href="assets/neon.css">
+<style>
+  .qcard{border:1px solid rgba(103,232,249,.2);border-radius:16px;padding:18px;margin-bottom:14px;background:rgba(2,6,23,.55);animation:rise .4s both}
+  .qcard.done{border-color:rgba(163,230,53,.35);box-shadow:0 0 20px rgba(163,230,53,.12)}
+  .qhead{display:flex;align-items:center;gap:8px;margin-bottom:11px;flex-wrap:wrap}
+  .qno{font-family:'Orbitron',sans-serif;font-weight:900;font-size:17px;color:var(--cyan);text-shadow:0 0 12px var(--cyan)}
+  .stem{font-size:15px;line-height:1.75;margin-bottom:14px;word-break:keep-all}
+  .opt{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;margin-bottom:8px;border-radius:11px;
+    border:1px solid rgba(103,232,249,.18);background:rgba(2,6,23,.6);cursor:pointer;transition:.18s;font-size:14px;line-height:1.6}
+  .opt:hover{border-color:rgba(34,211,238,.5);background:rgba(34,211,238,.07)}
+  .opt.sel{border-color:var(--cyan);background:rgba(34,211,238,.15);box-shadow:0 0 18px rgba(34,211,238,.35)}
+  .opt .num{font-family:'Orbitron',sans-serif;font-weight:700;min-width:22px;height:22px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:11px;border:1px solid rgba(103,232,249,.4);
+    color:var(--dim);flex-shrink:0;margin-top:1px}
+  .opt.sel .num{background:var(--cyan);color:#04121a;border-color:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+
+  .bar{position:sticky;top:0;z-index:50;background:rgba(5,6,15,.92);backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(103,232,249,.2);padding:11px 16px;display:flex;justify-content:space-between;
+    align-items:center;gap:12px;flex-wrap:wrap}
+  .bar .who{font-size:12px;color:var(--dim)}
+  .timer{font-family:'Orbitron',sans-serif;font-weight:900;font-size:17px;color:var(--lime);text-shadow:0 0 12px var(--lime)}
+  .timer.warn{color:var(--rose);text-shadow:0 0 14px var(--rose);animation:flicker 1s infinite}
+  .prog{height:4px;background:rgba(103,232,249,.12);border-radius:99px;overflow:hidden;flex:1 0 100%;margin-top:2px}
+  .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--magenta));box-shadow:0 0 12px var(--cyan);width:0;transition:.35s}
+
+  .score{text-align:center;padding:28px 12px 20px}
+  .big{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(56px,15vw,96px);line-height:1;
+    color:#eafcff;text-shadow:0 0 8px #fff,0 0 26px var(--cyan),0 0 60px var(--cyan);animation:flicker 4s infinite}
+  .big.low{text-shadow:0 0 8px #fff,0 0 26px var(--rose),0 0 60px var(--rose)}
+  .lvl{font-family:'Orbitron',sans-serif;font-size:40px;font-weight:900;margin-top:6px}
+  .res{border-left:3px solid var(--lime);padding:14px 16px;border-radius:0 12px 12px 0;background:rgba(163,230,53,.06);margin-bottom:10px}
+  .res.x{border-color:var(--rose);background:rgba(251,113,133,.07)}
+  .res .t{font-size:13px;font-weight:700;margin-bottom:7px;display:flex;gap:8px;align-items:center}
+  .res .s{font-size:13.5px;line-height:1.7;color:#cfe4f7;margin-bottom:8px;word-break:keep-all}
+  .res .a{font-size:12.5px;line-height:1.7;color:var(--dim)}
+  .res .a b{color:var(--lime)}
+  .res.x .a b.mine{color:var(--rose)}
+  .res .e{margin-top:8px;font-size:12.5px;line-height:1.7;color:#f3e3b8;background:rgba(251,191,36,.07);padding:9px 12px;border-radius:8px}
+  .warnbox{border:1px solid var(--amber);background:rgba(251,191,36,.08);border-radius:12px;padding:12px 14px;
+    font-size:12.5px;color:#f3e3b8;line-height:1.7;margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<!-- ══════ 1. 시작 ══════ -->
+<div class="wrap narrow" id="s1">
+  <h1 class="title neon pink" style="text-align:center">POP QUIZ</h1>
+  <p class="sub" style="text-align:center" id="school">과학 형성평가</p>
+  <div class="card" id="info"><p class="hint">평가를 불러오는 중...</p></div>
+  <div class="card hidden" id="loginCard">
+    <h2>누구인가요?</h2>
+    <div class="row c3">
+      <div><label>학년</label><select id="g"><option>1</option><option>2</option><option>3</option></select></div>
+      <div><label>반</label><input id="c" type="number" inputmode="numeric" min="1" max="20" placeholder="예 3"></div>
+      <div><label>번호</label><input id="n" type="number" inputmode="numeric" min="1" max="45" placeholder="예 12"></div>
+    </div>
+    <div class="row"><div><label>이름</label><input id="nm" placeholder="홍길동" maxlength="10" autocomplete="off"></div></div>
+    <button class="btn block lime" id="start">▶ 시작하기</button>
+    <p class="hint" style="margin-top:12px">제출하면 바로 채점되고 점수가 선생님께 전송됩니다. 이름과 번호를 정확히 적어 주세요.</p>
+  </div>
+</div>
+
+<!-- ══════ 2. 응시 ══════ -->
+<div id="s2" class="hidden">
+  <div class="bar">
+    <div class="who" id="who"></div>
+    <div class="timer" id="timer">--:--</div>
+    <div class="prog"><i id="prog"></i></div>
+  </div>
+  <div class="wrap narrow">
+    <div id="qs"></div>
+    <button class="btn block pink" id="submit" style="margin-top:6px">제출하기</button>
+    <p class="hint" style="text-align:center;margin-top:12px">제출 후에는 수정할 수 없습니다.</p>
+  </div>
+</div>
+
+<!-- ══════ 3. 결과 ══════ -->
+<div id="s3" class="hidden">
+  <div class="wrap narrow">
+    <div class="card">
+      <div class="score">
+        <div class="hint" id="rname"></div>
+        <div class="big" id="rbig">0</div>
+        <div class="hint" style="margin-top:4px">/ 100점</div>
+        <div class="lvl neon" id="rlvl">A</div>
+        <div style="margin-top:14px" id="rchips"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>문항별 결과와 해설</h2>
+      <div id="rlist"></div>
+    </div>
+    <p class="hint" style="text-align:center">틀린 문항의 해설을 꼭 읽고 교과서에서 해당 부분을 다시 확인하세요.</p>
+  </div>
+</div>
+
+<div class="loader" id="ld"><div class="ring"></div><p id="ldtxt">LOADING...</p></div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="assets/api.js"></script>
+<script>
+var QUIZ = null, ANS = {}, T0 = 0, TIMER = null, ME = {}, SENDING = false;
+var QUIZ_ID = new URLSearchParams(location.search).get('id') || '';
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function toast(m, err){
+  var t = $('toast'); t.textContent = m;
+  t.className = 'toast on' + (err ? ' err' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ t.className = 'toast' + (err ? ' err' : ''); }, 4200);
+}
+function show(n){ ['s1','s2','s3'].forEach(function(s, i){ $(s).classList.toggle('hidden', i !== n - 1); }); window.scrollTo(0,0); }
+function store(op, val){
+  try { if (op === 'get') return localStorage.getItem('pq'); localStorage.setItem('pq', val); }
+  catch (e) { if (op === 'get') return store._m || null; store._m = val; }
+}
+
+if (window.SCHOOL_NAME) $('school').textContent = window.SCHOOL_NAME + ' 과학 형성평가';
+
+/* ── 평가 불러오기 ── */
+if (!QUIZ_ID) {
+  $('info').innerHTML = '<p class="hint">평가 주소가 올바르지 않습니다. 선생님이 공유한 링크나 QR로 접속하세요.</p>';
+} else {
+  API.getQuiz(QUIZ_ID, function(a, left){
+    toast('연결이 느립니다. 다시 시도하는 중... (' + a + '회)', true);
+  }).then(function(q){
+    QUIZ = q;
+    $('info').innerHTML =
+      '<span class="chip">중' + q.grade + '</span> ' +
+      '<span class="chip pink">' + esc(q.area) + '</span> ' +
+      '<span class="chip amber">' + (q.timeLimit ? q.timeLimit + '분' : '시간제한 없음') + '</span> ' +
+      '<span class="chip lime">' + q.items.length + '문항</span>' +
+      '<div style="margin-top:12px;font-size:15px;line-height:1.6;font-weight:500">' + esc(q.topic) + '</div>';
+    $('loginCard').classList.remove('hidden');
+    try {
+      var last = JSON.parse(store('get') || '{}');
+      if (last.g) { $('g').value = last.g; $('c').value = last.c; $('n').value = last.n; $('nm').value = last.nm; }
+    } catch (e) {}
+  }).catch(function(e){
+    $('info').innerHTML = '<p class="hint" style="color:var(--rose)">' + esc(e.message) + '</p>' +
+      '<button class="btn sm" style="margin-top:12px" onclick="location.reload()">다시 시도</button>';
+  });
+}
+
+/* ── 시작 ── */
+$('start').onclick = function(){
+  var g = $('g').value, c = $('c').value.trim(), n = $('n').value.trim(), nm = $('nm').value.trim();
+  if (!c || !n || !nm) { toast('반·번호·이름을 모두 입력하세요.', true); return; }
+  ME = { grade: g, classNo: Number(c), studentNo: Number(n), name: nm };
+  store('set', JSON.stringify({ g:g, c:c, n:n, nm:nm }));
+  $('who').textContent = '중' + g + ' · ' + c + '반 ' + n + '번 · ' + nm;
+  renderQs();
+  show(2);
+  T0 = Date.now();
+  if (QUIZ.timeLimit) startTimer(QUIZ.timeLimit * 60); else $('timer').textContent = '∞';
+};
+
+function startTimer(sec){
+  var end = Date.now() + sec * 1000;
+  TIMER = setInterval(function(){
+    var left = Math.max(0, Math.round((end - Date.now()) / 1000));
+    $('timer').textContent = Math.floor(left / 60) + ':' + ('0' + (left % 60)).slice(-2);
+    $('timer').classList.toggle('warn', left <= 60);
+    if (left <= 0) { clearInterval(TIMER); toast('시간이 끝나 자동 제출합니다.'); doSubmit(true); }
+  }, 500);
+}
+
+/* ── 문항 ── */
+function renderQs(){
+  $('qs').innerHTML = QUIZ.items.map(function(it){
+    var body = it.type === 'MC'
+      ? it.choices.map(function(ch, i){
+          return '<div class="opt" data-q="' + it.no + '" data-v="' + (i+1) + '">' +
+                 '<span class="num">' + (i+1) + '</span><span>' + esc(ch) + '</span></div>'; }).join('')
+      : '<input class="sa" data-q="' + it.no + '" placeholder="답을 입력하세요" maxlength="40" autocomplete="off">';
+    return '<div class="qcard" id="q' + it.no + '">' +
+      '<div class="qhead"><span class="qno">' + it.no + '</span>' +
+      '<span class="chip dim">' + (it.type === 'MC' ? '객관식' : '단답형') + '</span></div>' +
+      '<div class="stem">' + esc(it.stem) + '</div>' + body + '</div>';
+  }).join('');
+
+  $('qs').querySelectorAll('.opt').forEach(function(el){
+    el.onclick = function(){
+      var q = el.dataset.q;
+      $('qs').querySelectorAll('.opt[data-q="' + q + '"]').forEach(function(x){ x.classList.remove('sel'); });
+      el.classList.add('sel');
+      ANS[q] = el.dataset.v;
+      $('q' + q).classList.add('done');
+      updProg();
+    };
+  });
+  $('qs').querySelectorAll('input.sa').forEach(function(el){
+    el.oninput = function(){
+      var q = el.dataset.q;
+      ANS[q] = el.value.trim();
+      $('q' + q).classList.toggle('done', !!ANS[q]);
+      updProg();
+    };
+  });
+  updProg();
+}
+
+function updProg(){
+  var done = QUIZ.items.filter(function(it){ return ANS[it.no]; }).length;
+  $('prog').style.width = (done / QUIZ.items.length * 100) + '%';
+}
+
+/* ── 제출 ── */
+$('submit').onclick = function(){ doSubmit(false); };
+
+function doSubmit(auto){
+  if (SENDING) return;
+  var blank = QUIZ.items.filter(function(it){ return !ANS[it.no]; }).map(function(it){ return it.no; });
+  if (!auto && blank.length) {
+    if (!confirm(blank.join(', ') + '번을 아직 안 풀었어요. 그래도 제출할까요?')) {
+      var el = $('q' + blank[0]);
+      if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: 'smooth' });
+      return;
+    }
+  }
+  if (!auto && !confirm('제출하면 수정할 수 없습니다. 제출할까요?')) return;
+
+  SENDING = true;
+  if (TIMER) clearInterval(TIMER);
+  $('submit').disabled = true;
+  $('ld').classList.add('on');
+  $('ldtxt').textContent = 'GRADING...';
+
+  API.submit({
+    quizId: QUIZ_ID, grade: ME.grade, classNo: ME.classNo, studentNo: ME.studentNo,
+    name: ME.name, answers: ANS, elapsed: Math.round((Date.now() - T0) / 1000)
+  }, function(a){
+    $('ldtxt').textContent = 'RETRYING... ' + a;
+    toast('접속이 몰려 다시 보내는 중입니다. 창을 닫지 마세요.', true);
+  }).then(function(r){
+    $('ld').classList.remove('on');
+    SENDING = false;
+    result(r);
+  }).catch(function(e){
+    $('ld').classList.remove('on');
+    $('submit').disabled = false;
+    SENDING = false;
+    toast('제출 실패: ' + e.message + ' — 다시 제출을 눌러 주세요.', true);
+  });
+}
+
+/* ── 결과 ── */
+function result(r){
+  show(3);
+  $('rname').textContent = r.name + ' 학생 · ' + r.topic;
+  $('rbig').textContent = r.pct;
+  $('rbig').classList.toggle('low', r.pct < 60);
+  var col = { A:'var(--lime)', B:'var(--cyan)', C:'var(--amber)', D:'var(--violet)', E:'var(--rose)' }[r.level];
+  $('rlvl').textContent = r.level;
+  $('rlvl').style.color = col;
+  $('rlvl').style.textShadow = '0 0 8px #fff, 0 0 26px ' + col + ', 0 0 55px ' + col;
+  $('rchips').innerHTML =
+    '<span class="chip lime">맞은 개수 ' + r.score + ' / ' + r.total + '</span> ' +
+    '<span class="chip">객관식 ' + r.mcScore + '</span> ' +
+    '<span class="chip pink">단답형 ' + r.saScore + '</span>';
+
+  $('rlist').innerHTML = r.detail.map(function(d){
+    var mine, ans;
+    if (d.type === 'MC') {
+      mine = d.given ? (d.given + '. ' + (d.choices[Number(d.given) - 1] || '')) : '(무응답)';
+      ans = d.answer + '. ' + (d.choices[Number(d.answer) - 1] || '');
+    } else { mine = d.given || '(무응답)'; ans = d.answer; }
+    return '<div class="res' + (d.correct ? '' : ' x') + '">' +
+      '<div class="t"><span style="font-family:Orbitron">' + d.no + '</span>' +
+      '<span class="chip ' + (d.correct ? 'lime' : 'rose') + '">' + (d.correct ? '정답' : '오답') + '</span>' +
+      '<span class="chip dim">' + esc(d.level) + '</span></div>' +
+      '<div class="s">' + esc(d.stem) + '</div>' +
+      '<div class="a">내 답 <b class="mine">' + esc(mine) + '</b>' +
+      (d.correct ? '' : ' &nbsp;→&nbsp; 정답 <b>' + esc(ans) + '</b>') + '</div>' +
+      '<div class="e">💡 ' + esc(d.explain) + '</div></div>';
+  }).join('');
+}
+
+/* 실수로 새로고침·뒤로가기 하는 것 방지 */
+window.addEventListener('beforeunload', function(e){
+  if (!$('s2').classList.contains('hidden') && !SENDING) { e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>

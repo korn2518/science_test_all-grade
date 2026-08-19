@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>형성평가 출제실</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+
+:root{
+  --bg:#05060f; --panel:rgba(12,18,42,.72); --line:rgba(103,232,249,.22);
+  --cyan:#22d3ee; --magenta:#f0f; --violet:#a855f7;
+  --lime:#a3e635; --amber:#fbbf24; --rose:#fb7185;
+  --txt:#e6f6ff; --dim:#8ea6c8;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+
+body::before{content:'';position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(900px 600px at 12% -5%, rgba(168,85,247,.30), transparent 60%),
+    radial-gradient(800px 600px at 90% 8%, rgba(34,211,238,.24), transparent 60%),
+    radial-gradient(700px 500px at 50% 105%, rgba(255,0,255,.18), transparent 60%),
+    linear-gradient(180deg,#05060f,#080b1c 45%,#05060f)}
+body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(rgba(34,211,238,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.055) 1px,transparent 1px);
+  background-size:46px 46px;
+  mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 85%);
+  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 85%);
+  animation:gridDrift 22s linear infinite}
+@keyframes gridDrift{from{background-position:0 0,0 0}to{background-position:0 46px,46px 0}}
+
+.wrap{max-width:1080px;margin:0 auto;padding:26px 18px 90px}
+.wrap.narrow{max-width:760px}
+
+.neon{font-family:'Orbitron','Noto Sans KR',sans-serif;font-weight:900;letter-spacing:.06em;color:#eafcff;
+  text-shadow:0 0 4px #fff,0 0 12px var(--cyan),0 0 28px var(--cyan),0 0 55px rgba(34,211,238,.55);
+  animation:flicker 6s infinite}
+.neon.pink{text-shadow:0 0 4px #fff,0 0 12px var(--magenta),0 0 30px var(--magenta),0 0 58px rgba(255,0,255,.5)}
+@keyframes flicker{0%,17%,19%,21%,23%,25%,54%,56%,100%{opacity:1}18%,20%,22%,24%,55%{opacity:.68}}
+h1.title{font-size:clamp(22px,4.4vw,38px);margin:0 0 6px}
+.sub{color:var(--dim);font-size:13px;letter-spacing:.04em;margin:0 0 22px}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:18px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 0 0 1px rgba(255,255,255,.03) inset,0 18px 50px rgba(0,0,0,.6),0 0 34px rgba(34,211,238,.10);
+  animation:rise .45s cubic-bezier(.2,.9,.25,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.card h2{font-family:'Orbitron','Noto Sans KR',sans-serif;font-size:15px;letter-spacing:.12em;margin:0 0 16px;
+  color:var(--cyan);text-shadow:0 0 10px rgba(34,211,238,.75);display:flex;align-items:center;gap:9px}
+.card h2::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan);animation:pulse 1.7s infinite}
+@keyframes pulse{50%{opacity:.25;transform:scale(.7)}}
+
+label{display:block;font-size:12px;color:var(--dim);margin:0 0 6px;letter-spacing:.05em;font-weight:500}
+input,select,textarea{width:100%;padding:12px 14px;background:rgba(2,6,23,.85);border:1px solid rgba(103,232,249,.26);
+  border-radius:11px;color:var(--txt);font-family:inherit;font-size:14px;outline:none;transition:.22s}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.14),0 0 22px rgba(34,211,238,.35)}
+select option{background:#0a0f24}
+textarea{resize:vertical;min-height:70px}
+.row{display:grid;gap:12px;margin-bottom:14px}
+.row.c2{grid-template-columns:1fr 1fr}
+.row.c3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:600px){.row.c3{grid-template-columns:1fr 1fr}}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px;border-radius:12px;cursor:pointer;
+  font-family:'Orbitron','Noto Sans KR',sans-serif;font-weight:700;font-size:14px;letter-spacing:.08em;
+  background:transparent;color:var(--cyan);border:1.5px solid var(--cyan);
+  box-shadow:0 0 12px rgba(34,211,238,.4),inset 0 0 12px rgba(34,211,238,.12);
+  text-shadow:0 0 9px rgba(34,211,238,.85);transition:.2s}
+.btn:hover:not(:disabled){background:rgba(34,211,238,.14);box-shadow:0 0 26px rgba(34,211,238,.8);transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.btn.pink{color:var(--magenta);border-color:var(--magenta);box-shadow:0 0 12px rgba(255,0,255,.42);text-shadow:0 0 9px rgba(255,0,255,.85)}
+.btn.pink:hover:not(:disabled){background:rgba(255,0,255,.14);box-shadow:0 0 26px rgba(255,0,255,.8)}
+.btn.lime{color:var(--lime);border-color:var(--lime);box-shadow:0 0 12px rgba(163,230,53,.4);text-shadow:0 0 9px rgba(163,230,53,.85)}
+.btn.lime:hover:not(:disabled){background:rgba(163,230,53,.14);box-shadow:0 0 26px rgba(163,230,53,.75)}
+.btn.violet{color:var(--violet);border-color:var(--violet);box-shadow:0 0 12px rgba(168,85,247,.4);text-shadow:0 0 9px rgba(168,85,247,.85)}
+.btn.sm{padding:8px 14px;font-size:12px;border-radius:9px}
+.btn.block{width:100%}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+
+.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;letter-spacing:.05em;
+  border:1px solid rgba(103,232,249,.4);color:var(--cyan);background:rgba(34,211,238,.09)}
+.chip.pink{border-color:rgba(255,0,255,.45);color:#ff8bff;background:rgba(255,0,255,.09)}
+.chip.lime{border-color:rgba(163,230,53,.45);color:var(--lime);background:rgba(163,230,53,.09)}
+.chip.amber{border-color:rgba(251,191,36,.45);color:var(--amber);background:rgba(251,191,36,.09)}
+.chip.rose{border-color:rgba(251,113,133,.45);color:var(--rose);background:rgba(251,113,133,.09)}
+.chip.dim{border-color:rgba(142,166,200,.35);color:var(--dim);background:rgba(142,166,200,.07)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 8px;text-align:left;border-bottom:1px solid rgba(103,232,249,.12)}
+th{color:var(--cyan);font-size:11px;letter-spacing:.1em;font-weight:700;text-transform:uppercase}
+tbody tr:hover{background:rgba(34,211,238,.07)}
+.scroll{overflow-x:auto}
+
+.loader{display:none;text-align:center;padding:34px 10px}
+.loader.on{display:block}
+.ring{width:56px;height:56px;margin:0 auto 16px;border-radius:50%;
+  border:3px solid rgba(34,211,238,.15);border-top-color:var(--cyan);border-right-color:var(--magenta);
+  animation:spin .9s linear infinite;box-shadow:0 0 26px rgba(34,211,238,.55)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader p{color:var(--cyan);font-family:'Orbitron',sans-serif;letter-spacing:.14em;font-size:12px;animation:flicker 2.4s infinite}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,120%);
+  background:rgba(6,10,26,.96);border:1px solid var(--cyan);color:var(--txt);padding:13px 22px;border-radius:12px;
+  font-size:13px;z-index:999;box-shadow:0 0 26px rgba(34,211,238,.6);transition:.3s;max-width:88vw;text-align:center}
+.toast.on{transform:translate(-50%,0)}
+.toast.err{border-color:var(--rose);box-shadow:0 0 26px rgba(251,113,133,.6)}
+
+.hint{font-size:12px;color:var(--dim);line-height:1.65}
+.hint b{color:var(--cyan);font-weight:600}
+.divider{height:1px;background:linear-gradient(90deg,transparent,rgba(103,232,249,.35),transparent);margin:18px 0}
+.hidden{display:none!important}
+
+  .qcard{border:1px solid rgba(103,232,249,.2);border-radius:14px;padding:16px;margin-bottom:12px;background:rgba(2,6,23,.5)}
+  .qcard.sa{border-color:rgba(255,0,255,.28)}
+  .qhead{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .qno{font-family:'Orbitron',sans-serif;font-weight:900;color:var(--cyan);text-shadow:0 0 10px var(--cyan);font-size:15px}
+  .qcard.sa .qno{color:var(--magenta);text-shadow:0 0 10px var(--magenta)}
+  .stem{font-size:14px;line-height:1.7;margin-bottom:10px}
+  .ch{display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:13px;color:#cfe4f7}
+  .ch b{color:var(--dim);min-width:18px}
+  .ch.ans{color:var(--lime);text-shadow:0 0 10px rgba(163,230,53,.5)}
+  .ch.ans b{color:var(--lime)}
+  .exp{margin-top:9px;padding:9px 12px;border-left:2px solid var(--amber);background:rgba(251,191,36,.07);
+    font-size:12.5px;color:#f3e3b8;line-height:1.65;border-radius:0 8px 8px 0}
+  .linkbox{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .linkbox input{font-size:12px;font-family:monospace}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .tab{padding:9px 18px;border-radius:10px;border:1px solid rgba(103,232,249,.25);cursor:pointer;font-size:13px;
+    color:var(--dim);transition:.2s;font-weight:500}
+  .tab.on{color:var(--cyan);border-color:var(--cyan);background:rgba(34,211,238,.1);
+    box-shadow:0 0 16px rgba(34,211,238,.3);text-shadow:0 0 8px var(--cyan)}
+  .stdbox{margin-top:10px;padding:12px 14px;border-radius:10px;background:rgba(168,85,247,.08);
+    border:1px solid rgba(168,85,247,.28);font-size:12.5px;line-height:1.7;color:#e2d3ff}
+  .stdbox b{color:var(--violet)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="title neon">FORMATIVE ASSESSMENT STUDIO</h1>
+  <p class="sub">2022 개정 교육과정 · 중학교 과학 · 두레자연중학교</p>
+
+  <div class="tabs">
+    <div class="tab on" data-t="make">✦ 문항 생성</div>
+    <div class="tab" data-t="bank">✦ 문제은행</div>
+    <div class="tab" data-t="cfg">✦ 설정</div>
+  </div>
+
+  <!-- ══════════ 생성 ══════════ -->
+  <div id="p-make">
+    <div class="card">
+      <h2>수업 정보 입력</h2>
+      <div class="row c3">
+        <div><label>학년</label>
+          <select id="grade"><option value="1">중 1</option><option value="2">중 2</option><option value="3">중 3</option></select>
+        </div>
+        <div><label>영역</label><select id="area"></select></div>
+        <div><label>제한시간(분)</label>
+          <select id="tl"><option>5</option><option selected>10</option><option>15</option><option>20</option><option value="0">무제한</option></select>
+        </div>
+      </div>
+      <div class="row"><div><label>성취기준</label><select id="std"></select></div></div>
+      <div id="stdbox" class="stdbox hidden"></div>
+      <div class="divider"></div>
+      <div class="row"><div>
+        <label>오늘 수업 주제 (구체적일수록 문항이 정확해집니다)</label>
+        <input id="topic" placeholder="예) 물질의 상태 변화에서 열에너지 출입 — 융해열과 응고열 비교">
+      </div></div>
+      <div class="row"><div>
+        <label>추가 요청 (선택)</label>
+        <textarea id="note" placeholder="예) 오늘 한 드라이아이스 승화 실험 상황을 1~2문항에 넣어주세요 / 그래프 해석 문항 포함 / 계산 문항은 빼주세요"></textarea>
+      </div></div>
+      <button class="btn block" id="gen">⚡ 10문항 생성</button>
+    </div>
+
+    <div class="loader" id="ld"><div class="ring"></div><p id="ldtxt">GENERATING ITEMS...</p></div>
+
+    <div id="preview" class="hidden">
+      <div class="card">
+        <h2>생성 결과 · 검수</h2>
+        <div id="meta" style="margin-bottom:14px"></div>
+        <div id="items"></div>
+        <div class="divider"></div>
+        <div class="btn-row">
+          <button class="btn lime" id="save">💾 저장하고 링크 발급</button>
+          <button class="btn violet" id="regen">↻ 다시 생성</button>
+          <button class="btn sm" id="editSheet">✎ 시트에서 직접 수정</button>
+        </div>
+        <p class="hint" style="margin-top:12px">저장 뒤 스프레드시트 <b>문제은행</b> 시트의 <b>문항JSON</b> 칸을 고칠 수 있습니다. 고친 뒤에는 설정 탭의 <b>캐시 비우기</b>를 눌러야 학생 화면에 반영됩니다.</p>
+      </div>
+    </div>
+
+    <div id="linkcard" class="card hidden">
+      <h2>배포 링크</h2>
+      <p class="hint">이 주소를 학급 밴드·클래스룸에 올리거나 QR을 화면에 띄우세요. 학생은 로그인 없이 바로 응시합니다.</p>
+      <div class="linkbox">
+        <input id="link" readonly>
+        <button class="btn sm" id="copy">복사</button>
+      </div>
+      <div id="qr" style="margin-top:16px;text-align:center"></div>
+      <p class="hint" id="pageswarn" style="margin-top:12px"></p>
+    </div>
+  </div>
+
+  <!-- ══════════ 문제은행 ══════════ -->
+  <div id="p-bank" class="hidden">
+    <div class="card">
+      <h2>누적 문제은행</h2>
+      <div class="btn-row" style="margin-bottom:14px">
+        <button class="btn sm" id="reload">↻ 새로고침</button>
+        <button class="btn sm violet" id="godash">📊 대시보드 열기</button>
+        <button class="btn sm pink" id="gosheet">📄 스프레드시트 열기</button>
+      </div>
+      <div class="scroll"><table>
+        <thead><tr><th>생성</th><th>학년</th><th>영역</th><th>성취기준</th><th>주제</th><th>응시</th><th>상태</th><th>링크</th></tr></thead>
+        <tbody id="bank"><tr><td colspan="8" class="hint">불러오는 중...</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ══════════ 설정 ══════════ -->
+  <div id="p-cfg" class="hidden">
+    <div class="card">
+      <h2>1. Gemini API</h2>
+      <p class="hint" style="margin-bottom:14px"><b>aistudio.google.com/apikey</b> 에서 무료 키를 발급받아 붙여넣으세요. 키는 이 스크립트에만 저장되며 학생에게 노출되지 않습니다.</p>
+      <div class="row"><div><label>API 키</label><input id="key" type="password" placeholder="AIza..."></div></div>
+      <div class="row c2">
+        <div><label>모델</label><select id="model"></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn sm" id="listm" style="flex:1">모델 목록 불러오기</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. GitHub Pages 주소</h2>
+      <p class="hint" style="margin-bottom:14px">학생 응시 페이지를 GitHub Pages에 올렸다면 그 주소를 넣으세요. <b>동시 접속 시 훨씬 빨라집니다.</b> 비워 두면 학생 링크가 발급되지 않습니다.</p>
+      <div class="row"><div><label>Pages 주소 (끝에 / 없이)</label>
+        <input id="pages" placeholder="https://내아이디.github.io/저장소이름"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>3. 교사 PIN</h2>
+      <p class="hint" style="margin-bottom:14px">대시보드를 열 때 쓰는 비밀번호입니다. 학생이 결과를 볼 수 없게 반드시 설정하세요.</p>
+      <div class="row"><div><label>PIN (숫자·문자 4자 이상)</label><input id="pin" type="password" placeholder="예) 1234dure"></div></div>
+      <button class="btn block lime" id="savecfg">전체 저장</button>
+      <div class="divider"></div>
+      <div class="btn-row">
+        <button class="btn sm violet" id="clearcache">🧹 캐시 비우기</button>
+        <button class="btn sm" id="ping">🔌 연결 테스트</button>
+      </div>
+      <div class="divider"></div>
+      <div id="cfginfo" class="hint"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var CFG = {}, CUR = null, LAST = null;
+
+function $(id){ return document.getElementById(id); }
+function toast(m, err){
+  var t = $('toast'); t.textContent = m;
+  t.className = 'toast on' + (err ? ' err' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ t.className = 'toast' + (err ? ' err' : ''); }, 4200);
+}
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+document.querySelectorAll('.tab').forEach(function(el){
+  el.onclick = function(){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('on'); });
+    el.classList.add('on');
+    ['make','bank','cfg'].forEach(function(k){ $('p-' + k).classList.add('hidden'); });
+    $('p-' + el.dataset.t).classList.remove('hidden');
+    if (el.dataset.t === 'bank') loadBank();
+  };
+});
+
+google.script.run.withSuccessHandler(function(c){
+  CFG = c;
+  $('model').innerHTML = '<option>' + esc(c.model) + '</option>';
+  $('pages').value = c.pagesUrl || '';
+  $('cfginfo').innerHTML =
+    'API 키: <b>' + (c.hasKey ? esc(c.keyTail) : '미설정') + '</b><br>' +
+    '모델: <b>' + esc(c.model) + '</b><br>' +
+    '교사 PIN: <b>' + (c.hasPin ? '설정됨' : '미설정') + '</b><br>' +
+    'Pages 주소: <b>' + (c.pagesUrl ? esc(c.pagesUrl) : '미설정') + '</b><br>' +
+    '웹앱(API) 주소: <b style="word-break:break-all">' + esc(c.webAppUrl) + '</b>';
+  if (!c.hasKey) toast('먼저 [설정]에서 Gemini API 키를 저장하세요.', true);
+  else if (!c.pagesUrl) toast('[설정]에서 GitHub Pages 주소를 넣으면 학생 접속이 빨라집니다.', true);
+}).getConfig();
+
+google.script.run.withSuccessHandler(function(list){
+  $('area').innerHTML = list.map(function(a){
+    return '<option value="' + a.no + '">' + a.no + '. ' + esc(a.name) + '</option>'; }).join('');
+  loadStd();
+}).fetchAreas();
+
+$('area').onchange = loadStd;
+function loadStd(){
+  google.script.run.withSuccessHandler(function(list){
+    window.__STD = list;
+    $('std').innerHTML = list.map(function(s){
+      return '<option value="' + s.c + '">' + s.c + ' — ' + esc(s.s.slice(0, 45)) + '…</option>'; }).join('');
+    showStd();
+  }).fetchStandards(Number($('area').value));
+}
+$('std').onchange = showStd;
+function showStd(){
+  var s = (window.__STD || []).filter(function(x){ return x.c === $('std').value; })[0];
+  if (!s) return;
+  $('stdbox').classList.remove('hidden');
+  $('stdbox').innerHTML = '<b>[' + esc(s.c) + ']</b> ' + esc(s.s) +
+    (s.A ? '<br><br><b>A수준</b> ' + esc(s.A) : '') + (s.C ? '<br><b>C수준</b> ' + esc(s.C) : '');
+}
+
+$('gen').onclick = doGen;
+$('regen').onclick = doGen;
+function doGen(){
+  var topic = $('topic').value.trim();
+  if (!topic) { toast('수업 주제를 입력하세요.', true); $('topic').focus(); return; }
+  LAST = { grade: $('grade').value, code: $('std').value, topic: topic,
+           note: $('note').value.trim(), timeLimit: Number($('tl').value) };
+  $('preview').classList.add('hidden');
+  $('linkcard').classList.add('hidden');
+  $('ld').classList.add('on');
+  $('gen').disabled = true;
+
+  var msgs = ['성취기준 해석 중...', '문항 초안 작성 중...', '오답 선택지 다듬는 중...', '해설 정리 중...'];
+  var i = 0, timer = setInterval(function(){ $('ldtxt').textContent = msgs[i++ % msgs.length]; }, 2200);
+
+  google.script.run
+    .withSuccessHandler(function(q){ clearInterval(timer); $('ld').classList.remove('on'); $('gen').disabled = false; render(q); })
+    .withFailureHandler(function(e){ clearInterval(timer); $('ld').classList.remove('on'); $('gen').disabled = false; toast(e.message, true); })
+    .generateQuiz(LAST);
+}
+
+function render(q){
+  CUR = q;
+  $('preview').classList.remove('hidden');
+  $('meta').innerHTML =
+    '<span class="chip">중' + q.grade + '</span> ' +
+    '<span class="chip pink">' + esc(q.area) + '</span> ' +
+    '<span class="chip lime">' + esc(q.code) + '</span> ' +
+    '<span class="chip amber">' + (q.timeLimit ? q.timeLimit + '분' : '무제한') + '</span>' +
+    '<div class="hint" style="margin-top:9px">' + esc(q.topic) + '</div>';
+
+  $('items').innerHTML = q.items.map(function(it){
+    var lv = { '하':'lime', '중':'amber', '상':'rose' }[it.level] || 'dim';
+    var body;
+    if (it.type === 'MC') {
+      body = it.choices.map(function(c, i){
+        var ok = String(i + 1) === String(it.answer);
+        return '<div class="ch' + (ok ? ' ans' : '') + '"><b>' + (i+1) + '</b><span>' + esc(c) + (ok ? ' ✔' : '') + '</span></div>';
+      }).join('');
+    } else {
+      body = '<div class="ch ans"><b>답</b><span>' + esc(it.answer) + '</span></div>' +
+        '<div class="hint" style="margin-top:4px">인정 표기: ' + esc((it.accept || []).join(' / ')) + '</div>';
+    }
+    return '<div class="qcard' + (it.type === 'SA' ? ' sa' : '') + '">' +
+      '<div class="qhead"><span class="qno">' + it.no + '</span>' +
+      '<span class="chip dim">' + (it.type === 'MC' ? '객관식' : '단답형') + '</span>' +
+      '<span class="chip ' + lv + '">' + esc(it.level) + '</span></div>' +
+      '<div class="stem">' + esc(it.stem) + '</div>' + body +
+      '<div class="exp">💡 ' + esc(it.explain) + '</div></div>';
+  }).join('');
+  window.scrollTo({ top: $('preview').offsetTop - 20, behavior: 'smooth' });
+}
+
+$('save').onclick = function(){
+  if (!CUR) return;
+  this.disabled = true;
+  google.script.run
+    .withSuccessHandler(function(r){
+      $('save').disabled = false;
+      $('linkcard').classList.remove('hidden');
+      $('link').value = r.url;
+      $('qr').innerHTML = '<img alt="QR" style="border-radius:12px;box-shadow:0 0 26px rgba(34,211,238,.55)" src="https://api.qrserver.com/v1/create-qr-code/?size=190x190&margin=8&data=' + encodeURIComponent(r.url) + '">';
+      $('pageswarn').innerHTML = CFG.pagesUrl ? '' :
+        '⚠ GitHub Pages 주소가 설정되지 않아 임시 주소가 나왔습니다. <b>설정 탭</b>에서 Pages 주소를 넣고 다시 저장하세요.';
+      toast('저장 완료 — ' + r.quizId);
+      window.scrollTo({ top: $('linkcard').offsetTop - 20, behavior: 'smooth' });
+    })
+    .withFailureHandler(function(e){ $('save').disabled = false; toast(e.message, true); })
+    .saveQuiz(CUR);
+};
+
+$('copy').onclick = function(){
+  var el = $('link'); el.select(); el.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); toast('링크를 복사했습니다.'); }
+  catch (e) { toast('길게 눌러 직접 복사하세요.', true); }
+};
+
+$('editSheet').onclick = function(){ window.open(CFG.sheetUrl, '_blank'); };
+$('gosheet').onclick = function(){ window.open(CFG.sheetUrl, '_blank'); };
+$('godash').onclick = function(){
+  if (CFG.pagesUrl) window.open(CFG.pagesUrl + '/dashboard.html', '_blank');
+  else toast('설정 탭에서 GitHub Pages 주소를 먼저 넣으세요.', true);
+};
+
+$('reload').onclick = loadBank;
+function loadBank(){
+  $('bank').innerHTML = '<tr><td colspan="8" class="hint">불러오는 중...</td></tr>';
+  google.script.run.withSuccessHandler(function(list){
+    if (!list.length) { $('bank').innerHTML = '<tr><td colspan="8" class="hint">아직 저장된 평가가 없습니다.</td></tr>'; return; }
+    $('bank').innerHTML = list.map(function(q){
+      return '<tr>' +
+        '<td>' + esc(q.created) + '</td><td>중' + q.grade + '</td><td>' + esc(q.area) + '</td>' +
+        '<td><span class="chip lime">' + esc(q.code) + '</span></td>' +
+        '<td style="max-width:230px">' + esc(q.topic) + '</td>' +
+        '<td><b style="color:var(--cyan)">' + q.count + '</b>명</td>' +
+        '<td><span class="chip ' + (q.status === '공개' ? '' : 'rose') + '" style="cursor:pointer" onclick="tog(\'' + q.quizId + '\')">' + esc(q.status) + '</span></td>' +
+        '<td><button class="btn sm" onclick="cp(\'' + q.url + '\')">복사</button></td></tr>';
+    }).join('');
+  }).withFailureHandler(function(e){ toast(e.message, true); }).listQuizzes();
+}
+function tog(id){
+  google.script.run.withSuccessHandler(function(s){ toast('상태 변경 → ' + s); loadBank(); })
+    .withFailureHandler(function(e){ toast(e.message, true); }).toggleQuizStatus(id);
+}
+function cp(url){
+  var t = document.createElement('input');
+  document.body.appendChild(t); t.value = url; t.select();
+  try { document.execCommand('copy'); toast('링크 복사됨'); } catch (e) { prompt('복사하세요', url); }
+  document.body.removeChild(t);
+}
+
+$('listm').onclick = function(){
+  var b = this; b.disabled = true; b.textContent = '조회 중...';
+  google.script.run.withSuccessHandler(function(ms){
+    b.disabled = false; b.textContent = '모델 목록 불러오기';
+    $('model').innerHTML = ms.map(function(m){
+      return '<option' + (m === CFG.model ? ' selected' : '') + '>' + esc(m) + '</option>'; }).join('');
+    toast(ms.length + '개 모델을 찾았습니다.');
+  }).withFailureHandler(function(e){
+    b.disabled = false; b.textContent = '모델 목록 불러오기'; toast(e.message, true);
+  }).listGeminiModels();
+};
+
+$('savecfg').onclick = function(){
+  var k = $('key').value.trim(), m = $('model').value,
+      p = $('pages').value.trim(), pin = $('pin').value.trim();
+  var jobs = [];
+  if (k) jobs.push(['setApiKey', k]);
+  jobs.push(['setModel', m]);
+  jobs.push(['setPagesUrl', p]);
+  if (pin) jobs.push(['setPin', pin]);
+
+  var done = 0;
+  function fin(){ if (++done >= jobs.length) { toast('저장했습니다.'); setTimeout(function(){ location.reload(); }, 700); } }
+  jobs.forEach(function(j){
+    google.script.run.withSuccessHandler(fin).withFailureHandler(function(e){ toast(e.message, true); })[j[0]](j[1]);
+  });
+};
+
+$('clearcache').onclick = function(){
+  google.script.run.withSuccessHandler(function(){ toast('캐시를 비웠습니다. 학생 화면에 수정본이 반영됩니다.'); })
+    .withFailureHandler(function(e){ toast(e.message, true); }).clearQuizCache('');
+};
+
+$('ping').onclick = function(){
+  var b = this; b.disabled = true;
+  fetch(CFG.webAppUrl + '?api=ping')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ b.disabled = false; toast(d.ok ? '✅ API 정상 응답' : '응답 이상', !d.ok); })
+    .catch(function(e){ b.disabled = false; toast('연결 실패: ' + e.message, true); });
+};
+</script>
+</body>
+</html>

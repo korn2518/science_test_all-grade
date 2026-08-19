@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>형성평가 대시보드</title>
+<link rel="stylesheet" href="assets/neon.css">
+<style>
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{border:1px solid rgba(103,232,249,.2);border-radius:14px;padding:16px 12px;text-align:center;background:rgba(2,6,23,.55)}
+  .kpi .v{font-family:'Orbitron',sans-serif;font-weight:900;font-size:30px;line-height:1;color:#eafcff;
+    text-shadow:0 0 6px #fff,0 0 20px var(--cyan),0 0 44px rgba(34,211,238,.6)}
+  .kpi .k{font-size:11px;color:var(--dim);margin-top:7px;letter-spacing:.09em}
+  .kpi.p .v{text-shadow:0 0 6px #fff,0 0 20px var(--magenta),0 0 44px rgba(255,0,255,.55)}
+  .kpi.l .v{text-shadow:0 0 6px #fff,0 0 20px var(--lime),0 0 44px rgba(163,230,53,.55)}
+  .kpi.a .v{text-shadow:0 0 6px #fff,0 0 20px var(--amber),0 0 44px rgba(251,191,36,.55)}
+  .kpi.r .v{text-shadow:0 0 6px #fff,0 0 20px var(--rose),0 0 44px rgba(251,113,133,.55)}
+  .brow{display:flex;align-items:center;gap:11px;margin-bottom:9px;font-size:12.5px}
+  .brow .nm{width:78px;color:var(--dim);flex-shrink:0}
+  .brow .tr{flex:1;height:16px;border-radius:99px;background:rgba(103,232,249,.09);overflow:hidden}
+  .brow .fl{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.2,.9,.25,1)}
+  .brow .vv{width:56px;text-align:right;font-family:'Orbitron',sans-serif;font-weight:700;font-size:12px}
+  .lvbar{display:flex;height:34px;border-radius:11px;overflow:hidden;border:1px solid rgba(103,232,249,.22);margin-bottom:12px}
+  .lvbar div{display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;
+    font-weight:900;font-size:12px;color:#04121a;transition:.6s;min-width:0;overflow:hidden}
+  .lowlight{color:var(--rose)!important;font-weight:700}
+  .toplight{color:var(--lime)!important}
+  .pill{display:inline-block;min-width:34px;text-align:center;padding:2px 8px;border-radius:99px;
+    font-family:'Orbitron',sans-serif;font-weight:700;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="title neon">DATA DASHBOARD</h1>
+  <p class="sub" id="school">형성평가 누적 데이터</p>
+
+  <!-- PIN -->
+  <div class="card" id="pinCard">
+    <h2>교사 확인</h2>
+    <div class="row"><div><label>교사 PIN</label><input id="pin" type="password" placeholder="출제실 → 설정에서 정한 PIN" autocomplete="off"></div></div>
+    <button class="btn block lime" id="go">열기</button>
+    <p class="hint" style="margin-top:12px">학생 이름과 점수가 보이는 화면이라 PIN으로 보호합니다.</p>
+  </div>
+
+  <div id="main" class="hidden">
+    <div class="card">
+      <h2>평가 선택</h2>
+      <div class="row c2">
+        <div><label>형성평가</label><select id="q"><option value="">전체 누적</option></select></div>
+        <div style="display:flex;align-items:flex-end;gap:8px">
+          <button class="btn sm" id="rl" style="flex:1">↻ 새로고침</button>
+          <button class="btn sm pink" id="csv" style="flex:1">⬇ CSV</button>
+          <button class="btn sm violet" id="out" style="flex:1">잠금</button>
+        </div>
+      </div>
+    </div>
+    <div id="body"></div>
+  </div>
+</div>
+
+<div class="loader" id="ld"><div class="ring"></div><p id="ldtxt">LOADING...</p></div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="assets/api.js"></script>
+<script>
+var D = null, PIN = '';
+var COLS = { A:'#a3e635', B:'#22d3ee', C:'#fbbf24', D:'#a855f7', E:'#fb7185' };
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function toast(m, err){
+  var t = $('toast'); t.textContent = m;
+  t.className = 'toast on' + (err ? ' err' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ t.className = 'toast' + (err ? ' err' : ''); }, 4000);
+}
+if (window.SCHOOL_NAME) $('school').textContent = window.SCHOOL_NAME + ' · 형성평가 누적 데이터';
+
+try { PIN = sessionStorage.getItem('tpin') || ''; } catch(e) {}
+if (PIN) { $('pin').value = PIN; open_(); }
+
+$('go').onclick = open_;
+$('pin').onkeydown = function(e){ if (e.key === 'Enter') open_(); };
+
+function open_(){
+  PIN = $('pin').value.trim();
+  if (!PIN) { toast('PIN을 입력하세요.', true); return; }
+  load();
+}
+$('out').onclick = function(){
+  try { sessionStorage.removeItem('tpin'); } catch(e){}
+  location.reload();
+};
+$('rl').onclick = load;
+$('q').onchange = load;
+
+function load(){
+  $('ld').classList.add('on');
+  API.dashboard(PIN, $('q').value, function(a){ $('ldtxt').textContent = 'RETRYING... ' + a; })
+    .then(function(d){
+      $('ld').classList.remove('on');
+      try { sessionStorage.setItem('tpin', PIN); } catch(e){}
+      $('pinCard').classList.add('hidden');
+      $('main').classList.remove('hidden');
+      render(d);
+    })
+    .catch(function(e){
+      $('ld').classList.remove('on');
+      toast(e.message, true);
+    });
+}
+
+function render(d){
+  D = d;
+  if ($('q').options.length <= 1 && d.quizzes.length) {
+    $('q').innerHTML = '<option value="">전체 누적</option>' + d.quizzes.map(function(q){
+      return '<option value="' + q.quizId + '">' + esc(q.created) + ' · 중' + q.grade + ' · ' +
+        esc(String(q.topic).slice(0, 30)) + ' (' + q.count + '명)</option>'; }).join('');
+  }
+  if (!d.stats) { $('body').innerHTML = '<div class="card"><p class="hint">아직 제출된 응답이 없습니다.</p></div>'; return; }
+  var s = d.stats, html = '';
+
+  html += '<div class="card"><h2>요약</h2><div class="kpis">' +
+    kpi('', s.n, '응시 인원') + kpi('l', s.avg, '평균 (%)') + kpi('p', s.median, '중앙값 (%)') +
+    kpi('a', s.max, '최고 (%)') + kpi('r', s.min, '최저 (%)') + '</div></div>';
+
+  html += '<div class="card"><h2>성취수준 분포</h2><div class="lvbar">';
+  ['A','B','C','D','E'].forEach(function(k){
+    var n = s.levelDist[k], w = n / s.n * 100;
+    html += '<div style="width:' + w + '%;background:' + COLS[k] + ';box-shadow:0 0 18px ' + COLS[k] + '">' +
+      (w > 7 ? k + ' ' + n : '') + '</div>';
+  });
+  html += '</div><p class="hint">A 90%↑ · B 80%↑ · C 70%↑ · D 60%↑ · E 60%미만 &nbsp;|&nbsp; ' +
+    ['A','B','C','D','E'].map(function(k){ return '<b>' + k + '</b> ' + s.levelDist[k] + '명'; }).join(' · ') +
+    '</p></div>';
+
+  html += '<div class="card"><h2>학급별 평균</h2>';
+  s.classStats.forEach(function(c){
+    html += bar(c.name + ' (' + c.n + ')', c.avg, c.avg >= 80 ? '#a3e635' : c.avg >= 60 ? '#22d3ee' : '#fb7185');
+  });
+  html += '</div>';
+
+  if (s.itemStats && s.itemStats.length) {
+    html += '<div class="card"><h2>문항별 정답률 — 다시 짚어야 할 문항</h2>';
+    s.itemStats.forEach(function(i){
+      html += bar(i.no + '번 ' + i.level, i.rate, i.rate >= 70 ? '#a3e635' : i.rate >= 50 ? '#fbbf24' : '#fb7185');
+    });
+    html += '<div class="divider"></div><div class="scroll"><table><thead><tr>' +
+      '<th>문항</th><th>유형</th><th>난이도</th><th>정답률</th><th>가장 많은 오답</th></tr></thead><tbody>' +
+      s.itemStats.map(function(i){
+        return '<tr><td><b style="font-family:Orbitron">' + i.no + '</b></td><td>' + esc(i.type) + '</td>' +
+          '<td>' + esc(i.level) + '</td>' +
+          '<td class="' + (i.rate < 50 ? 'lowlight' : i.rate >= 80 ? 'toplight' : '') + '">' + i.rate + '%</td>' +
+          '<td class="hint">' + esc(i.topWrong) + '</td></tr>'; }).join('') +
+      '</tbody></table></div>' +
+      '<p class="hint" style="margin-top:10px">정답률 <b>50% 미만</b> 문항은 다음 차시 도입에서 5분 재설명 대상입니다.</p></div>';
+  } else {
+    html += '<div class="card"><h2>문항별 정답률</h2><p class="hint">위에서 개별 형성평가를 선택하면 문항별 정답률과 오답 분포가 나타납니다.</p></div>';
+  }
+
+  html += '<div class="card"><h2>개별 결과 (' + d.rows.length + '건)</h2><div class="scroll"><table><thead><tr>' +
+    '<th>제출</th><th>학급</th><th>번호</th><th>이름</th><th>주제</th><th>점수</th><th>%</th><th>수준</th><th>틀린 문항</th>' +
+    '</tr></thead><tbody>' +
+    d.rows.map(function(r){
+      return '<tr><td class="hint">' + esc(r.time) + '</td>' +
+        '<td>' + r.grade + '-' + r.classNo + '</td><td>' + r.studentNo + '</td>' +
+        '<td><b>' + esc(r.name) + '</b></td>' +
+        '<td class="hint" style="max-width:180px">' + esc(r.topic) + '</td>' +
+        '<td>' + r.score + '/' + r.total + '</td>' +
+        '<td class="' + (r.pct < 60 ? 'lowlight' : r.pct >= 90 ? 'toplight' : '') + '">' + r.pct + '</td>' +
+        '<td><span class="pill" style="background:' + COLS[r.level] + ';color:#04121a">' + r.level + '</span></td>' +
+        '<td class="hint">' + esc(r.wrong || '-') + '</td></tr>'; }).join('') +
+    '</tbody></table></div></div>';
+
+  $('body').innerHTML = html;
+}
+
+function kpi(cls, v, k){ return '<div class="kpi ' + cls + '"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>'; }
+function bar(name, val, col){
+  return '<div class="brow"><span class="nm">' + esc(name) + '</span>' +
+    '<span class="tr"><span class="fl" style="width:' + val + '%;background:' + col + ';box-shadow:0 0 14px ' + col + '"></span></span>' +
+    '<span class="vv" style="color:' + col + '">' + val + '%</span></div>';
+}
+
+$('csv').onclick = function(){
+  if (!D || !D.rows.length) { toast('내려받을 데이터가 없습니다.', true); return; }
+  var head = ['제출','학년','반','번호','이름','주제','성취기준','점수','만점','백분율','성취수준','오답문항'];
+  var lines = [head.join(',')].concat(D.rows.map(function(r){
+    return [r.time, r.grade, r.classNo, r.studentNo, r.name, r.topic, r.code,
+      r.score, r.total, r.pct, r.level, r.wrong].map(function(x){
+      x = String(x == null ? '' : x);
+      return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }).join(',');
+  }));
+  var blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '형성평가_결과.csv';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  toast('CSV를 내려받았습니다.');
+};
+</script>
+</body>
+</html>
