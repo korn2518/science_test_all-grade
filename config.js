@@ -5,7 +5,7 @@
  *            .../exec 로 끝나야 합니다.
  * ════════════════════════════════════════════════════════════ */
 
-window.API_URL = "여기에_Apps_Script_웹앱_주소_붙여넣기";
+window.API_URL = "https://script.google.com/macros/s/AKfycbyh91ce0ZF-glc8zkiTKUDlq2Z-K5AsNyAQPQLuH7Jw-_RbZ5OSLOP7cKD6rshpqXJzBw/exec";
 
 /* 예시)
 window.API_URL = "https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxxxxxxxxxxxxxx/exec";
