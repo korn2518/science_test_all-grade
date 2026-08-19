@@ -12,7 +12,7 @@
 
 const SHEET_BANK = '문제은행';
 const SHEET_RESP = '응답';
-const DEFAULT_MODEL = 'gemini-flash-latest';
+const AUTO_MODEL = '(자동 선택)';   // 비워 두면 사용 가능한 최신 flash 모델을 자동으로 고릅니다
 const CACHE_SEC = 21600; // 6시간
 
 const BANK_HEADERS = ['퀴즈ID', '생성일시', '학년', '영역', '성취기준코드', '성취기준', '수업주제', '제한시간(분)', '상태', '문항JSON', '출제자'];
@@ -81,7 +81,12 @@ function include(name) {
 function props_() { return PropertiesService.getScriptProperties(); }
 
 function setApiKey(key) { props_().setProperty('GEMINI_API_KEY', String(key || '').trim()); return true; }
-function setModel(m) { props_().setProperty('GEMINI_MODEL', String(m || '').trim() || DEFAULT_MODEL); return true; }
+function setModel(m) {
+  m = String(m || '').trim();
+  if (!m || m.charAt(0) === '(') m = '';   // '(자동 선택)' 이면 비워 두고 자동 판단
+  props_().setProperty('GEMINI_MODEL', m);
+  return true;
+}
 function setPin(pin) { props_().setProperty('TEACHER_PIN', String(pin || '').trim()); return true; }
 
 function requirePin_(pin) {
@@ -95,7 +100,7 @@ function getConfig() {
   return {
     hasKey: !!k,
     keyTail: k ? '••••' + k.slice(-4) : '',
-    model: props_().getProperty('GEMINI_MODEL') || DEFAULT_MODEL,
+    model: props_().getProperty('GEMINI_MODEL') || AUTO_MODEL,
     hasPin: !!(props_().getProperty('TEACHER_PIN') || ''),
     pagesUrl: props_().getProperty('PAGES_URL') || '',
     webAppUrl: ScriptApp.getService().getUrl(),
@@ -108,18 +113,24 @@ function setPagesUrl(url) {
   return true;
 }
 
+/** UI용 — 모델 목록. 추천 모델이 맨 앞에 옵니다. */
 function listGeminiModels() {
   const key = props_().getProperty('GEMINI_API_KEY');
   if (!key) throw new Error('API 키를 먼저 저장하세요.');
-  const res = UrlFetchApp.fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + encodeURIComponent(key),
-    { muteHttpExceptions: true });
-  if (res.getResponseCode() !== 200) throw new Error('모델 목록 조회 실패: ' + res.getContentText().slice(0, 300));
-  return (JSON.parse(res.getContentText()).models || [])
-    .filter(function (m) { return (m.supportedGenerationMethods || []).indexOf('generateContent') >= 0; })
-    .map(function (m) { return m.name.replace('models/', ''); })
-    .filter(function (n) { return !/embedding|aqa|imagen|veo|tts/i.test(n); })
-    .sort();
+  const all = listGeminiModels_(key);
+  let best = '';
+  try { best = pickBestModel_(key); } catch (e) { }
+  if (best) return [best].concat(all.filter(function (n) { return n !== best; }));
+  return all;
+}
+
+/** 설정 탭 [자동 선택] 버튼용 */
+function autoPickModel() {
+  const key = props_().getProperty('GEMINI_API_KEY');
+  if (!key) throw new Error('API 키를 먼저 저장하세요.');
+  const m = pickBestModel_(key);
+  props_().setProperty('GEMINI_MODEL', m);
+  return m;
 }
 
 /* ═══════════════════ 스프레드시트 ═══════════════════ */
@@ -223,41 +234,145 @@ function buildPrompt_(cfg) {
   ].filter(String).join('\n');
 }
 
+/**
+ * 사용 가능한 모델 중 가장 좋은 flash 계열을 고른다.
+ * 구글이 모델 이름을 바꿔도(gemini-3.7-flash 등) 알아서 따라갑니다.
+ */
+function pickBestModel_(key) {
+  const names = listGeminiModels_(key);
+  let best = '', bestScore = -1;
+  names.forEach(function (n) {
+    if (!/flash/i.test(n)) return;
+    if (/embedding|tts|image|imagen|veo|live|omni|robotics|learnlm|aqa|audio|native/i.test(n)) return;
+    let s = 0;
+    const m = n.match(/gemini-(\d+(?:\.\d+)?)-flash/);
+    if (m) s += parseFloat(m[1]) * 100;
+    if (/latest/.test(n)) s += 5;
+    if (/lite/.test(n)) s -= 30;
+    if (/preview|exp/.test(n)) s -= 60;
+    if (/thinking/.test(n)) s -= 20;
+    if (/-\d{3,}$/.test(n)) s -= 10;          // 날짜 스냅샷
+    if (s > bestScore) { bestScore = s; best = n; }
+  });
+  if (!best && names.length) best = names[0];
+  if (!best) throw new Error('사용 가능한 모델을 찾지 못했습니다. API 키를 확인하세요.');
+  return best;
+}
+
+function listGeminiModels_(key) {
+  const res = UrlFetchApp.fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + encodeURIComponent(key),
+    { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) {
+    throw new Error('모델 목록 조회 실패 (' + res.getResponseCode() + ') — API 키가 올바른지 확인하세요.');
+  }
+  return (JSON.parse(res.getContentText()).models || [])
+    .filter(function (m) { return (m.supportedGenerationMethods || []).indexOf('generateContent') >= 0; })
+    .map(function (m) { return m.name.replace('models/', ''); })
+    .filter(function (n) { return !/embedding|aqa|imagen|veo|tts/i.test(n); })
+    .sort();
+}
+
+/**
+ * Gemini 호출.
+ * 모델 세대마다 지원하는 옵션이 달라서 세 가지 조합을 순서대로 시도합니다.
+ *  ① JSON 스키마 지정  ② JSON 형식만 지정  ③ 옵션 없음
+ * Gemini 3.x 부터 temperature 가 제거되었으므로 아예 보내지 않습니다.
+ */
+function callGemini_(key, model, prompt) {
+  const variants = [
+    { responseMimeType: 'application/json', responseSchema: ITEM_SCHEMA },
+    { responseMimeType: 'application/json' },
+    null
+  ];
+  let last = { code: 0, text: '' };
+
+  for (var v = 0; v < variants.length; v++) {
+    const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+    if (variants[v]) payload.generationConfig = variants[v];
+
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
+      encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(key);
+
+    for (var i = 0; i < 3; i++) {
+      const res = UrlFetchApp.fetch(url, {
+        method: 'post', contentType: 'application/json',
+        payload: JSON.stringify(payload), muteHttpExceptions: true
+      });
+      const code = res.getResponseCode();
+      if (code === 200) return { ok: true, code: 200, text: res.getContentText() };
+
+      last = { code: code, text: res.getContentText().slice(0, 500) };
+      if (code === 404 || code === 403) return { ok: false, code: code, text: last.text };  // 재시도 무의미
+      if (code === 400) break;                                                              // 옵션 문제 → 다음 조합
+      Utilities.sleep(1200 * (i + 1));                                                      // 429/500 → 잠깐 쉬고 재시도
+    }
+  }
+  return { ok: false, code: last.code, text: last.text };
+}
+
+function geminiErrorMsg_(r, model) {
+  if (r.code === 404) {
+    return '모델 "' + model + '" 을(를) 찾을 수 없습니다.\n' +
+      '구글이 모델 이름을 바꾼 것 같습니다. 설정 탭 → [모델 목록 불러오기] 를 눌러 목록에서 고른 뒤 저장하세요.';
+  }
+  if (r.code === 403) return 'API 키가 거부되었습니다. 키가 만료되었거나 권한이 없습니다. 새 키를 발급받아 저장하세요.';
+  if (r.code === 429) return '무료 사용 한도를 넘었습니다. 1~2분 뒤에 다시 시도하세요.';
+  if (r.code === 400) return 'Gemini가 요청을 거부했습니다.\n' + r.text.slice(0, 250);
+  if (r.code === 0) return '네트워크 오류로 Gemini에 연결하지 못했습니다. 잠시 뒤 다시 시도하세요.';
+  return 'Gemini 호출 실패 (' + r.code + ')\n' + r.text.slice(0, 250);
+}
+
 function generateQuiz(cfg) {
   const key = props_().getProperty('GEMINI_API_KEY');
-  if (!key) throw new Error('Gemini API 키가 없습니다. 설정에서 먼저 저장하세요.');
-  const model = props_().getProperty('GEMINI_MODEL') || DEFAULT_MODEL;
+  if (!key) throw new Error('Gemini API 키가 없습니다.\n설정 탭에서 키를 저장한 뒤 다시 시도하세요.');
 
-  const payload = {
-    contents: [{ role: 'user', parts: [{ text: buildPrompt_(cfg) }] }],
-    generationConfig: { temperature: 0.9, responseMimeType: 'application/json', responseSchema: ITEM_SCHEMA }
-  };
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
-    encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(key);
+  let model = props_().getProperty('GEMINI_MODEL') || '';
+  // 다시 생성할 때마다 다른 문항이 나오도록 하는 표식 (temperature 대체)
+  const prompt = buildPrompt_(cfg) + '\n\n(문항 세트 식별자: ' + Utilities.getUuid().slice(0, 8) + ')';
 
-  let res, lastErr = '';
-  for (var i = 0; i < 3; i++) {
-    res = UrlFetchApp.fetch(url, {
-      method: 'post', contentType: 'application/json',
-      payload: JSON.stringify(payload), muteHttpExceptions: true
-    });
-    if (res.getResponseCode() === 200) break;
-    lastErr = res.getContentText().slice(0, 400);
-    Utilities.sleep(1500 * (i + 1));
-  }
-  if (!res || res.getResponseCode() !== 200) {
-    throw new Error('Gemini 호출 실패 (' + (res ? res.getResponseCode() : '?') + ') — ' + lastErr +
-      '\n※ 설정에서 [모델 목록 불러오기]로 모델명을 확인하세요.');
+  // 모델이 없으면 지금 사용 가능한 것 중 가장 좋은 것을 자동 선택
+  if (!model) {
+    model = pickBestModel_(key);
+    props_().setProperty('GEMINI_MODEL', model);
   }
 
-  const body = JSON.parse(res.getContentText());
+  let r = callGemini_(key, model, prompt);
+
+  // 모델명이 바뀌어 404가 나면 자동으로 최신 모델로 갈아타고 재시도
+  if (!r.ok && r.code === 404) {
+    let better = '';
+    try { better = pickBestModel_(key); } catch (e) { }
+    if (better && better !== model) {
+      model = better;
+      props_().setProperty('GEMINI_MODEL', model);
+      r = callGemini_(key, model, prompt);
+    }
+  }
+  if (!r.ok) throw new Error(geminiErrorMsg_(r, model));
+
+  const body = JSON.parse(r.text);
   const cand = body.candidates && body.candidates[0];
-  const text = cand && cand.content && cand.content.parts &&
+  if (cand && cand.finishReason === 'SAFETY') {
+    throw new Error('안전 필터에 걸렸습니다. 수업 주제 표현을 바꿔 다시 시도하세요.');
+  }
+  let text = cand && cand.content && cand.content.parts &&
     cand.content.parts.map(function (p) { return p.text || ''; }).join('');
-  if (!text) throw new Error('응답이 비었습니다. 주제를 더 구체적으로 적고 다시 시도하세요.');
+  if (!text) throw new Error('응답이 비었습니다. 수업 주제를 조금 더 구체적으로 적고 다시 시도하세요.');
 
-  const items = normalizeItems_(JSON.parse(text).items || []);
-  if (items.length !== 10) throw new Error('문항 수가 10개가 아닙니다(' + items.length + '개). 다시 생성해 주세요.');
+  // ```json ... ``` 로 감싸 오는 경우 정리
+  text = String(text).trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const s = text.indexOf('{'), e = text.lastIndexOf('}');
+  if (s > 0 || e < text.length - 1) text = text.slice(Math.max(0, s), e + 1);
+
+  let parsed;
+  try { parsed = JSON.parse(text); }
+  catch (err) { throw new Error('문항 형식을 읽지 못했습니다. [다시 생성]을 한 번 더 눌러 주세요.'); }
+
+  const items = normalizeItems_(parsed.items || []);
+  if (items.length !== 10) {
+    throw new Error('문항이 ' + items.length + '개만 만들어졌습니다. [다시 생성]을 눌러 주세요.');
+  }
 
   const std = findStandard(cfg.code);
   return {

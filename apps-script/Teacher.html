@@ -228,8 +228,12 @@ tbody tr:hover{background:rgba(34,211,238,.07)}
       <div class="row"><div><label>API 키</label><input id="key" type="password" placeholder="AIza..."></div></div>
       <div class="row c2">
         <div><label>모델</label><select id="model"></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn sm" id="listm" style="flex:1">모델 목록 불러오기</button></div>
+        <div style="display:flex;align-items:flex-end;gap:8px">
+          <button class="btn sm lime" id="autom" style="flex:1">✨ 자동 선택</button>
+          <button class="btn sm" id="listm" style="flex:1">목록 불러오기</button>
+        </div>
       </div>
+      <p class="hint"><b>(자동 선택)</b> 상태로 두는 것을 권합니다. 구글이 모델 이름을 바꿔도 알아서 최신 모델을 따라갑니다.</p>
     </div>
 
     <div class="card">
@@ -282,7 +286,8 @@ document.querySelectorAll('.tab').forEach(function(el){
 
 google.script.run.withSuccessHandler(function(c){
   CFG = c;
-  $('model').innerHTML = '<option>' + esc(c.model) + '</option>';
+  $('model').innerHTML = '<option>' + esc(c.model) + '</option>' +
+    (c.model === '(자동 선택)' ? '' : '<option>(자동 선택)</option>');
   $('pages').value = c.pagesUrl || '';
   $('cfginfo').innerHTML =
     'API 키: <b>' + (c.hasKey ? esc(c.keyTail) : '미설정') + '</b><br>' +
@@ -432,13 +437,24 @@ function cp(url){
 $('listm').onclick = function(){
   var b = this; b.disabled = true; b.textContent = '조회 중...';
   google.script.run.withSuccessHandler(function(ms){
-    b.disabled = false; b.textContent = '모델 목록 불러오기';
-    $('model').innerHTML = ms.map(function(m){
-      return '<option' + (m === CFG.model ? ' selected' : '') + '>' + esc(m) + '</option>'; }).join('');
-    toast(ms.length + '개 모델을 찾았습니다.');
+    b.disabled = false; b.textContent = '목록 불러오기';
+    $('model').innerHTML = '<option>(자동 선택)</option>' + ms.map(function(m, i){
+      return '<option' + (m === CFG.model ? ' selected' : '') + '>' + esc(m) + (i === 0 ? '' : '') + '</option>'; }).join('');
+    toast(ms.length + '개 모델을 찾았습니다. 맨 위가 추천 모델입니다.');
   }).withFailureHandler(function(e){
-    b.disabled = false; b.textContent = '모델 목록 불러오기'; toast(e.message, true);
+    b.disabled = false; b.textContent = '목록 불러오기'; toast(e.message, true);
   }).listGeminiModels();
+};
+
+$('autom').onclick = function(){
+  var b = this; b.disabled = true; b.textContent = '확인 중...';
+  google.script.run.withSuccessHandler(function(m){
+    b.disabled = false; b.textContent = '✨ 자동 선택';
+    $('model').innerHTML = '<option selected>' + esc(m) + '</option><option>(자동 선택)</option>';
+    toast('사용 가능한 최신 모델: ' + m);
+  }).withFailureHandler(function(e){
+    b.disabled = false; b.textContent = '✨ 자동 선택'; toast(e.message, true);
+  }).autoPickModel();
 };
 
 $('savecfg').onclick = function(){
