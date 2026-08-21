@@ -5,7 +5,7 @@
    /exec 로 끝나는 주소를 따옴표 안에 붙여넣으세요.
    ══════════════════════════════════════════════════════ */
 
-window.APP_URL = "여기에_Apps_Script_주소_붙여넣기";
+window.APP_URL = "https://script.google.com/a/macros/goedu.kr/s/AKfycbywWmwXvnZ54QvkwI72K8uD1X-oin8S_HInODxoHAFIC351zPmo34nRFS2_F9Fuh2_Y9g/exec";
 
 /* 예시)
 window.APP_URL = "https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxx/exec";
