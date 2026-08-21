@@ -1,15 +1,15 @@
-/* ════════════════════════════════════════════════════════════
- *  여기 한 줄만 고치면 됩니다.
- *
- *  API_URL : Apps Script [배포 → 웹 앱] 주소
- *            .../exec 로 끝나야 합니다.
- * ════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   여기 한 줄만 고치면 됩니다.
 
-window.API_URL = "여기에_Apps_Script_웹앱_주소_붙여넣기";
+   Apps Script → 배포 → 배포 관리 에 나오는
+   /exec 로 끝나는 주소를 따옴표 안에 붙여넣으세요.
+   ══════════════════════════════════════════════════════ */
+
+window.APP_URL = "여기에_Apps_Script_주소_붙여넣기";
 
 /* 예시)
-window.API_URL = "https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxxxxxxxxxxxxxx/exec";
+window.APP_URL = "https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxx/exec";
 */
 
-/* 학교 이름 (화면 부제목에 표시) */
-window.SCHOOL_NAME = "두레자연중학교";
+/* 홈 화면 아이콘 아래에 표시될 이름 */
+window.APP_NAME = "과학 형성평가";
